@@ -66,8 +66,6 @@ def _relax_and_retry(df: pd.DataFrame, prefs: dict) -> pd.DataFrame:
         ("budget",     lambda d: d),            # remove budget filter
     ]
 
-    relaxed = df.copy()
-    # Re-apply location (always required)
     relaxed = _filter_location(df, prefs["location"])
 
     for field, relax_fn in steps:
@@ -120,10 +118,7 @@ def filter_restaurants(df: pd.DataFrame, prefs: dict) -> pd.DataFrame:
         return pd.DataFrame()
 
     # --- Strict pipeline ---
-    filtered = df.copy()
-
-    # 4.1 Location
-    filtered = _filter_location(filtered, prefs["location"])
+    filtered = _filter_location(df, prefs["location"])
     if filtered.empty:
         print(f"[WARN] No restaurants found in location: '{prefs['location']}'.")
         print("       Check the spelling or try a broader area name.")

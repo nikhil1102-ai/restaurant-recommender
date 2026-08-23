@@ -61,7 +61,25 @@ def load_restaurants(use_cache: bool = True) -> pd.DataFrame:
     # -----------------------------------------------------------------------
     if use_cache and os.path.exists(PREPROCESSED_CSV):
         print(f"[CACHE] Loading from cache: {PREPROCESSED_CSV}")
-        df = pd.read_csv(PREPROCESSED_CSV)
+        # Load with memory-optimised dtypes to stay within Railway's 512MB limit
+        dtype_map = {
+            "name":        "string",
+            "location":    "category",
+            "cuisines":    "category",
+            "cost":        "float32",
+            "rating":      "float32",
+            "votes":       "int32",
+            "budget_tier": "category",
+        }
+        usecols = list(dtype_map.keys())
+        df = pd.read_csv(
+            PREPROCESSED_CSV,
+            usecols=lambda c: c in usecols,
+            dtype={k: v for k, v in dtype_map.items() if k != "votes"},
+        )
+        # votes may be stored as float due to NaN — coerce to int32
+        if "votes" in df.columns:
+            df["votes"] = df["votes"].fillna(0).astype("int32")
         print(f"[OK] {len(df):,} restaurants loaded from cache.")
         return df
 
@@ -120,11 +138,11 @@ def load_restaurants(use_cache: bool = True) -> pd.DataFrame:
     # Task 2.5 — Normalise text fields
     # -----------------------------------------------------------------------
     if "location" in df.columns:
-        df["location"] = df["location"].astype(str).str.lower().str.strip()
+        df["location"] = df["location"].astype(str).str.lower().str.strip().astype("category")
     if "cuisines" in df.columns:
-        df["cuisines"] = df["cuisines"].astype(str).str.lower().str.strip()
+        df["cuisines"] = df["cuisines"].astype(str).str.lower().str.strip().astype("category")
     if "name" in df.columns:
-        df["name"] = df["name"].astype(str).str.strip()
+        df["name"] = df["name"].astype(str).str.strip().astype("string")
 
     # -----------------------------------------------------------------------
     # Coerce numeric columns; drop rows that cannot be parsed
@@ -151,7 +169,7 @@ def load_restaurants(use_cache: bool = True) -> pd.DataFrame:
         )
 
     if "votes" in df.columns:
-        df["votes"] = pd.to_numeric(df["votes"], errors="coerce").fillna(0).astype(int)
+        df["votes"] = pd.to_numeric(df["votes"], errors="coerce").fillna(0).astype("int32")
     else:
         df["votes"] = 0
 
@@ -164,7 +182,7 @@ def load_restaurants(use_cache: bool = True) -> pd.DataFrame:
     # -----------------------------------------------------------------------
     # Task 2.6 — Map cost -> budget tier
     # -----------------------------------------------------------------------
-    df["budget_tier"] = df["cost"].apply(map_budget)
+    df["budget_tier"] = df["cost"].apply(map_budget).astype("category")
 
     # -----------------------------------------------------------------------
     # Deduplication -- keep one entry per unique (name, location, cost)
