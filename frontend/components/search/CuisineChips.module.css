@@ -1,0 +1,24 @@
+/* components/search/CuisineChips.module.css */
+.wrapper { display: flex; flex-direction: column; gap: 10px; }
+.label { font-size: 14px; font-weight: 600; color: var(--on-surface-v); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  padding: 6px 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--glass-border);
+  background: var(--surface-c);
+  color: var(--on-surface);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.chip:hover { background: var(--surface-bright); }
+
+.active {
+  border-color: var(--primary);
+  background: rgba(255, 83, 90, 0.14);
+  color: var(--primary-dim);
+}

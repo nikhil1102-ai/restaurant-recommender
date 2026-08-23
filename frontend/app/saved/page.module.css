@@ -1,0 +1,49 @@
+/* app/saved/page.module.css */
+.main {
+  flex: 1;
+  padding: var(--xl);
+  overflow-y: auto;
+}
+
+.heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--on-surface);
+  margin-bottom: var(--xl);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--md);
+}
+
+.card {
+  background: var(--surface-c);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sm);
+  transition: border-color 0.2s, background 0.2s;
+}
+.card:hover { background: var(--surface-high); border-color: rgba(255,83,90,0.3); }
+
+.cardName { font-size: 15px; font-weight: 600; color: var(--on-surface); }
+
+.remove { color: var(--on-surface-v); transition: color 0.15s; }
+.remove:hover { color: var(--primary); }
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--md);
+  padding-top: 80px;
+  text-align: center;
+  color: var(--on-surface-v);
+}
+
+.hint { font-size: 13px; color: var(--outline); max-width: 280px; }

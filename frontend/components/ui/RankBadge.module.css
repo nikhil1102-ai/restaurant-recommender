@@ -1,0 +1,16 @@
+/* components/ui/RankBadge.module.css */
+.badge {
+  position: absolute;
+  top: 10px; left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 185, 85, 0.9);
+  backdrop-filter: blur(4px);
+  color: #4f3100;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}

@@ -1,0 +1,34 @@
+/* components/results/AISummaryBanner.module.css */
+.banner {
+  display: flex;
+  gap: var(--md);
+  align-items: flex-start;
+  background: rgba(42, 42, 45, 0.5);
+  border: 1px solid rgba(255, 83, 90, 0.2);
+  border-radius: var(--r-xl);
+  padding: var(--md);
+}
+
+.iconWrap {
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255, 83, 90, 0.12);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.summary {
+  font-size: 16px;
+  color: var(--on-surface);
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.considered {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-v);
+  margin-top: 6px;
+}

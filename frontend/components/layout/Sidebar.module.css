@@ -1,0 +1,84 @@
+/* components/layout/Sidebar.module.css */
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  height: 100%;
+  background: var(--surface-c);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--xl) var(--md);
+  gap: var(--md);
+  z-index: 40;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--md);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+  padding: 10px var(--md);
+  border-radius: var(--r-md);
+  color: var(--on-surface-v);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color 0.15s, background 0.15s;
+  border-right: 3px solid transparent;
+}
+
+.link:hover {
+  color: var(--on-surface);
+  background: var(--surface-high);
+}
+
+.active {
+  color: var(--primary);
+  background: rgba(255, 83, 90, 0.07);
+  border-right-color: var(--primary);
+}
+
+.concierge {
+  margin-top: auto;
+  background: var(--surface-high);
+  border-radius: var(--r-lg);
+  padding: var(--md);
+  border: 1px solid var(--glass-border);
+}
+
+.conciergeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  margin-bottom: 6px;
+}
+
+.conciergeBody {
+  font-size: 13px;
+  color: var(--on-surface-v);
+  margin-bottom: var(--sm);
+  line-height: 1.5;
+}
+
+.newSearch {
+  display: block;
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  background: var(--surface-bright);
+  border: 1px solid var(--glass-border);
+  color: var(--on-surface);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.newSearch:hover { background: rgba(255,255,255,0.08); }

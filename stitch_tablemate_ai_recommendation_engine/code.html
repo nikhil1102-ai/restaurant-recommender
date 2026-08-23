@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TableMate AI - Restaurant Recommendations</title>
+<meta name="description" content="AI-powered restaurant recommender using Zomato data and Groq LLM"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "inverse-on-surface": "#303033",
+          "surface-container-low": "#1b1b1e",
+          "secondary": "#ffb955",
+          "on-secondary-container": "#4f3100",
+          "outline-variant": "#5b403f",
+          "surface-container-lowest": "#0e0e11",
+          "surface-bright": "#39393c",
+          "secondary-fixed": "#ffddb4",
+          "surface-container": "#1f1f22",
+          "background": "#131316",
+          "error": "#ffb4ab",
+          "error-container": "#93000a",
+          "primary-container": "#ff535a",
+          "on-primary-container": "#5b000e",
+          "on-primary": "#680011",
+          "on-secondary": "#452b00",
+          "outline": "#ab8987",
+          "inverse-surface": "#e4e1e6",
+          "on-secondary-fixed-variant": "#633f00",
+          "tertiary-container": "#00a657",
+          "on-secondary-fixed": "#291800",
+          "surface": "#131316",
+          "surface-container-highest": "#353438",
+          "surface-variant": "#353438",
+          "primary": "#ffb3b1",
+          "on-tertiary": "#003919",
+          "secondary-fixed-dim": "#ffb955",
+          "on-tertiary-container": "#003115",
+          "on-background": "#e4e1e6",
+          "tertiary": "#4ae183",
+          "primary-fixed": "#ffdad8",
+          "on-error": "#690005",
+          "surface-container-high": "#2a2a2d",
+          "on-surface": "#e4e1e6",
+          "primary-fixed-dim": "#ffb3b1",
+          "surface-dim": "#131316",
+          "on-surface-variant": "#e4bebc",
+          "secondary-container": "#dc9100",
+          "inverse-primary": "#bb162c",
+          "on-error-container": "#ffdad6"
+        },
+        borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px" },
+        spacing: {
+          "xl": "32px", "lg": "24px", "base": "4px", "xs": "8px",
+          "md": "16px", "margin-desktop": "48px", "sm": "12px",
+          "gutter": "16px", "margin-mobile": "16px"
+        },
+        fontFamily: {
+          "headline-sm": ["Inter"], "label-lg": ["Inter"], "body-lg": ["Inter"],
+          "body-md": ["Inter"], "body-sm": ["Inter"], "label-sm": ["Inter"],
+          "headline-md": ["Inter"], "headline-lg": ["Inter"]
+        },
+        fontSize: {
+          "headline-sm":  ["20px", { lineHeight: "28px", fontWeight: "600" }],
+          "label-lg":     ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "600" }],
+          "body-lg":      ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "body-md":      ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-md":  ["24px", { lineHeight: "32px", fontWeight: "600" }],
+          "body-sm":      ["14px", { lineHeight: "20px", fontWeight: "400" }],
+          "label-sm":     ["12px", { lineHeight: "16px", letterSpacing: "0.04em", fontWeight: "500" }],
+          "headline-lg":  ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "700" }]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  /* ── Scrollbar ── */
+  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 10px; }
+
+  /* ── Rating slider track fills coral on the left ── */
+  #ratingSlider { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px; outline: none; cursor: pointer; }
+  #ratingSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 0 10px rgba(255,255,255,0.35); cursor: pointer; }
+
+  /* ── Card entrance animation ── */
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .card-enter { animation: fadeSlideIn 0.35s ease both; }
+
+  /* ── Skeleton pulse ── */
+  @keyframes skeletonPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+  .skeleton { animation: skeletonPulse 1.4s ease-in-out infinite; background: #2a2a2d; border-radius: 8px; }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.9s linear infinite; }
+
+  /* ── Budget toggle active state ── */
+  .budget-btn.active { background: #39393c; color: #e4e1e6; box-shadow: 0 1px 4px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); }
+
+  /* ── Cuisine chip active ── */
+  .cuisine-chip.active { border-color: #ff535a; background: rgba(255,83,90,0.15); color: #ffb3b1; }
+</style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen overflow-hidden flex flex-col">
+
+<!-- ══════════════════════ TOP NAV ══════════════════════ -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop py-md bg-surface/70 backdrop-blur-md border-b border-white/10 shadow-md h-[72px]">
+  <div class="font-headline-lg text-headline-lg font-bold" style="color:#ff535a;">TableMate AI</div>
+  <div class="flex items-center gap-lg">
+    <div class="text-on-surface-variant font-medium text-sm hidden lg:block">9,565+ restaurants indexed</div>
+    <!-- Status dot -->
+    <div id="statusDot" class="flex items-center gap-2 text-sm text-on-surface-variant">
+      <span class="w-2 h-2 rounded-full bg-tertiary inline-block"></span>
+      <span id="statusText">API ready</span>
+    </div>
+  </div>
+</header>
+
+<div class="flex flex-1 pt-[72px] h-full relative overflow-hidden">
+
+  <!-- ══════════════════════ SIDE NAV ══════════════════════ -->
+  <nav class="hidden md:flex flex-col h-full py-xl px-md gap-md border-r border-white/5 bg-surface-container w-56 flex-shrink-0 z-40 overflow-y-auto custom-scrollbar">
+    <div class="flex flex-col gap-1 mt-4">
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg font-bold border-r-4 transition-all" style="color:#ff535a;border-color:#ff535a;background:rgba(255,83,90,0.06);" href="#">
+        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">explore</span>
+        <span class="font-label-lg text-label-lg">Discover</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" href="#">
+        <span class="material-symbols-outlined">bookmark</span>
+        <span class="font-label-lg text-label-lg">Saved</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" href="#">
+        <span class="material-symbols-outlined">history</span>
+        <span class="font-label-lg text-label-lg">History</span>
+      </a>
+      <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" href="#">
+        <span class="material-symbols-outlined">settings_suggest</span>
+        <span class="font-label-lg text-label-lg">AI Settings</span>
+      </a>
+    </div>
+
+    <!-- API URL config box -->
+    <div class="mt-auto mb-4">
+      <div class="bg-surface-container-high rounded-xl p-4 border border-white/5">
+        <div class="font-label-sm text-label-sm text-secondary uppercase tracking-wider mb-2">API Endpoint</div>
+        <input id="apiUrlInput" type="text" value="http://127.0.0.1:8000"
+          class="w-full bg-surface-container border border-white/10 rounded-lg px-3 py-2 text-on-surface text-xs mb-3 focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none"/>
+        <button onclick="resetForm()" class="w-full bg-surface-bright hover:bg-white/10 text-on-surface font-label-lg text-label-lg py-2 rounded-lg transition-colors border border-white/10 text-sm">
+          New Search
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════ MAIN SPLIT ══════════════════════ -->
+  <main class="flex flex-1 w-full h-full overflow-hidden">
+
+    <!-- ─── LEFT: Search Form (40%) ─── -->
+    <section class="w-[40%] h-full bg-surface-container-low border-r border-white/5 p-xl flex flex-col overflow-y-auto custom-scrollbar relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.2)]">
+      <h1 class="font-headline-md text-headline-md text-on-surface mb-8">What are you in the mood for?</h1>
+
+      <div class="flex flex-col gap-8">
+
+        <!-- Location -->
+        <div class="flex flex-col gap-2">
+          <label class="font-label-lg text-label-lg text-on-surface-variant">Location</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size:20px;">location_on</span>
+            <input id="locationInput" type="text" placeholder="e.g. Banashankari, BTM, Koramangala"
+              class="w-full bg-surface-container border border-white/10 rounded-lg py-3 pl-10 pr-4 text-on-surface placeholder-on-surface-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors text-sm"/>
+          </div>
+        </div>
+
+        <!-- Budget -->
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center">
+            <label class="font-label-lg text-label-lg text-on-surface-variant">Budget</label>
+            <span id="budgetLabel" class="font-label-sm text-label-sm text-on-surface-variant">₹501 – ₹1,200 for two</span>
+          </div>
+          <div class="flex bg-surface-container rounded-full p-1 border border-white/5">
+            <button class="budget-btn flex-1 py-2 text-center rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors text-sm" data-value="low" onclick="selectBudget(this)">Low</button>
+            <button class="budget-btn flex-1 py-2 text-center rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors text-sm active" data-value="medium" onclick="selectBudget(this)">Medium</button>
+            <button class="budget-btn flex-1 py-2 text-center rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-colors text-sm" data-value="high" onclick="selectBudget(this)">High</button>
+          </div>
+        </div>
+
+        <!-- Cuisines -->
+        <div class="flex flex-col gap-3">
+          <label class="font-label-lg text-label-lg text-on-surface-variant">Cuisine</label>
+          <div class="flex flex-wrap gap-2" id="cuisineChips">
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="any" onclick="selectCuisine(this)">Any</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="north indian" onclick="selectCuisine(this)">North Indian</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="south indian" onclick="selectCuisine(this)">South Indian</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="chinese" onclick="selectCuisine(this)">Chinese</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="biryani" onclick="selectCuisine(this)">Biryani</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="mughlai" onclick="selectCuisine(this)">Mughlai</div>
+            <div class="cuisine-chip px-4 py-2 rounded-full border border-white/10 bg-surface-container hover:bg-surface-bright text-on-surface font-label-lg text-label-lg flex items-center gap-1 cursor-pointer transition-colors text-sm" data-value="fast food" onclick="selectCuisine(this)">Fast Food</div>
+          </div>
+        </div>
+
+        <!-- Rating Slider -->
+        <div class="flex flex-col gap-4">
+          <div class="flex justify-between items-center">
+            <label class="font-label-lg text-label-lg text-on-surface-variant">Minimum Rating</label>
+            <div class="px-3 py-1 rounded-md bg-surface-bright border border-white/5 font-label-lg text-label-lg flex items-center gap-1" style="color:#ffb955;">
+              <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1;">star</span>
+              <span id="ratingDisplay">3.5+</span>
+            </div>
+          </div>
+          <input id="ratingSlider" type="range" min="0" max="5" step="0.5" value="3.5"
+            style="background: linear-gradient(to right, #ff535a 70%, #353438 70%);"
+            oninput="updateRating(this)" class="w-full"/>
+          <div class="flex justify-between text-on-surface-variant font-label-sm text-label-sm px-1">
+            <span>Any (0)</span><span>4.5+</span>
+          </div>
+        </div>
+
+        <!-- Extra preferences -->
+        <div class="flex flex-col gap-2">
+          <label class="font-label-lg text-label-lg text-on-surface-variant">Extra Preferences <span class="text-on-surface-variant font-normal">(optional)</span></label>
+          <input id="extraInput" type="text" placeholder="e.g. family-friendly, outdoor seating, rooftop"
+            class="w-full bg-surface-container border border-white/10 rounded-lg py-3 px-4 text-on-surface placeholder-on-surface-variant focus:border-primary-container focus:ring-1 focus:ring-primary-container outline-none transition-colors text-sm"/>
+        </div>
+
+      </div><!-- /form fields -->
+
+      <!-- CTA -->
+      <div class="mt-auto pt-8">
+        <button id="recommendBtn" onclick="getRecommendations()"
+          class="w-full text-white font-label-lg text-label-lg py-4 rounded-xl transition-all flex justify-center items-center gap-2 text-sm"
+          style="background:#ff535a;box-shadow:0 8px 24px rgba(255,83,90,0.22);">
+          <span class="material-symbols-outlined" id="btnIcon">magic_button</span>
+          <span id="btnText">Get Recommendations</span>
+        </button>
+        <div id="errorBanner" class="hidden mt-4 p-3 bg-error-container rounded-lg text-on-error-container text-sm"></div>
+      </div>
+    </section>
+
+    <!-- ─── RIGHT: Results Panel (60%) ─── -->
+    <section class="w-[60%] h-full bg-background p-xl flex flex-col gap-lg overflow-y-auto custom-scrollbar relative">
+      <!-- Ambient glow -->
+      <div class="absolute top-0 right-0 w-96 h-96 rounded-full blur-[100px] pointer-events-none" style="background:rgba(255,83,90,0.04);"></div>
+
+      <!-- AI Summary Banner -->
+      <div id="summaryBanner" class="hidden relative z-10">
+        <div class="bg-surface-container-high/50 border rounded-xl p-4 flex items-start gap-4" style="border-color:rgba(255,83,90,0.2);">
+          <div class="p-2 rounded-full flex-shrink-0 mt-1" style="background:rgba(255,83,90,0.15);">
+            <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;color:#ff535a;">auto_awesome</span>
+          </div>
+          <div>
+            <p id="summaryText" class="font-body-lg text-body-lg text-on-surface leading-relaxed"></p>
+          </div>
+        </div>
+        <div id="consideredText" class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest pl-2 mt-3"></div>
+      </div>
+
+      <!-- Skeleton loaders (shown while loading) -->
+      <div id="skeletons" class="hidden flex flex-col gap-6 relative z-10">
+        <div class="bg-surface-container rounded-2xl p-4 border border-white/5 flex gap-6">
+          <div class="skeleton w-48 h-48 rounded-xl flex-shrink-0"></div>
+          <div class="flex flex-col flex-1 gap-3 py-1">
+            <div class="skeleton h-6 w-2/3 rounded"></div>
+            <div class="skeleton h-4 w-1/2 rounded"></div>
+            <div class="skeleton h-4 w-full rounded mt-2"></div>
+            <div class="skeleton h-4 w-full rounded"></div>
+            <div class="skeleton h-4 w-3/4 rounded"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container rounded-2xl p-4 border border-white/5 flex gap-6">
+          <div class="skeleton w-48 h-48 rounded-xl flex-shrink-0"></div>
+          <div class="flex flex-col flex-1 gap-3 py-1">
+            <div class="skeleton h-6 w-2/3 rounded"></div>
+            <div class="skeleton h-4 w-1/2 rounded"></div>
+            <div class="skeleton h-4 w-full rounded mt-2"></div>
+            <div class="skeleton h-4 w-full rounded"></div>
+          </div>
+        </div>
+        <div class="bg-surface-container rounded-2xl p-4 border border-white/5 flex gap-6">
+          <div class="skeleton w-48 h-48 rounded-xl flex-shrink-0"></div>
+          <div class="flex flex-col flex-1 gap-3 py-1">
+            <div class="skeleton h-6 w-2/3 rounded"></div>
+            <div class="skeleton h-4 w-1/2 rounded"></div>
+            <div class="skeleton h-4 w-full rounded mt-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results list -->
+      <div id="resultsList" class="flex flex-col gap-6 relative z-10 pb-xl"></div>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="flex flex-col items-center justify-center flex-1 text-center py-24 relative z-10">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center mb-6" style="background:rgba(255,83,90,0.08);">
+          <span class="material-symbols-outlined text-5xl" style="color:#ff535a;">restaurant</span>
+        </div>
+        <p class="font-headline-sm text-headline-sm text-on-surface mb-2">Discover your next meal</p>
+        <p class="text-on-surface-variant text-sm max-w-xs">Fill in your preferences on the left and hit <strong>Get Recommendations</strong> to let the AI pick the best spots for you.</p>
+      </div>
+
+    </section>
+  </main>
+</div>
+
+<!-- ══════════════════════ JAVASCRIPT ══════════════════════ -->
+<script>
+  // ── State ──────────────────────────────────────────────
+  let selectedBudget  = "medium";
+  let selectedCuisine = "any";
+
+  // ── Budget toggle ──────────────────────────────────────
+  const budgetLabels = {
+    low:    "Up to ₹500 for two",
+    medium: "₹501 – ₹1,200 for two",
+    high:   "₹1,200+ for two"
+  };
+
+  function selectBudget(btn) {
+    document.querySelectorAll(".budget-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedBudget = btn.dataset.value;
+    document.getElementById("budgetLabel").textContent = budgetLabels[selectedBudget];
+  }
+
+  // ── Cuisine chips ──────────────────────────────────────
+  function selectCuisine(chip) {
+    document.querySelectorAll(".cuisine-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    selectedCuisine = chip.dataset.value;
+  }
+
+  // ── Rating slider ──────────────────────────────────────
+  function updateRating(input) {
+    const val = parseFloat(input.value);
+    document.getElementById("ratingDisplay").textContent = val === 0 ? "Any" : val + "+";
+    const pct = (val / 5) * 100;
+    input.style.background = `linear-gradient(to right, #ff535a ${pct}%, #353438 ${pct}%)`;
+  }
+
+  // ── Reset ──────────────────────────────────────────────
+  function resetForm() {
+    document.getElementById("locationInput").value = "";
+    document.getElementById("extraInput").value    = "";
+    document.getElementById("ratingSlider").value  = 3.5;
+    updateRating(document.getElementById("ratingSlider"));
+    selectBudget(document.querySelector('[data-value="medium"]'));
+    selectCuisine(document.querySelector('.cuisine-chip[data-value="any"]'));
+    document.getElementById("resultsList").innerHTML  = "";
+    document.getElementById("summaryBanner").classList.add("hidden");
+    document.getElementById("emptyState").classList.remove("hidden");
+    hideError();
+  }
+
+  // ── Error banner ───────────────────────────────────────
+  function showError(msg) {
+    const el = document.getElementById("errorBanner");
+    el.textContent = msg;
+    el.classList.remove("hidden");
+  }
+  function hideError() { document.getElementById("errorBanner").classList.add("hidden"); }
+
+  // ── Loading state ──────────────────────────────────────
+  function setLoading(on) {
+    const btn  = document.getElementById("recommendBtn");
+    const icon = document.getElementById("btnIcon");
+    const text = document.getElementById("btnText");
+    const skel = document.getElementById("skeletons");
+    const emp  = document.getElementById("emptyState");
+
+    if (on) {
+      btn.disabled = true;
+      btn.style.opacity = "0.7";
+      icon.classList.add("spin");
+      text.textContent = "Finding restaurants…";
+      skel.classList.remove("hidden");
+      skel.classList.add("flex", "flex-col");
+      emp.classList.add("hidden");
+      document.getElementById("resultsList").innerHTML = "";
+      document.getElementById("summaryBanner").classList.add("hidden");
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      icon.classList.remove("spin");
+      text.textContent = "Get Recommendations";
+      skel.classList.add("hidden");
+      skel.classList.remove("flex", "flex-col");
+    }
+  }
+
+  // ── Picsum food images (seeded by restaurant index) ──
+  const foodSeeds = [1080, 292, 493, 326, 431, 835, 999, 674, 112, 430];
+  function foodImg(idx) { return `https://picsum.photos/seed/food${foodSeeds[idx % foodSeeds.length]}/400/300`; }
+
+  // ── Build a restaurant card ────────────────────────────
+  function buildCard(r, delay) {
+    const cuisineTags = r.cuisine.split(",").slice(0,3).map(c =>
+      `<span class="px-2 py-0.5 rounded-sm bg-white/5 text-xs">${c.trim()}</span>`
+    ).join("");
+
+    return `
+    <div class="card-enter group bg-surface-container rounded-2xl p-4 border border-white/5
+                hover:bg-surface-container-high transition-all duration-300
+                flex flex-col xl:flex-row gap-6 shadow-sm
+                hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)] cursor-pointer"
+         style="animation-delay:${delay}ms; border-color:rgba(255,255,255,0.05);"
+         onmouseenter="this.style.borderColor='rgba(255,83,90,0.35)'"
+         onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'">
+
+      <!-- Image -->
+      <div class="w-full xl:w-48 h-48 rounded-xl overflow-hidden flex-shrink-0 relative">
+        <img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+             src="${foodImg(r.rank)}" alt="${r.name}" loading="lazy"
+             onerror="this.src='https://picsum.photos/400/300?grayscale'"/>
+        <!-- Rating badge -->
+        <div class="absolute top-3 left-3 backdrop-blur-sm font-label-sm px-2 py-1 rounded-md flex items-center gap-1 shadow-md"
+             style="background:rgba(255,185,85,0.9);color:#4f3100;">
+          <span class="material-symbols-outlined" style="font-size:14px;font-variation-settings:'FILL' 1;">star</span>
+          ${r.rating}
+        </div>
+        <!-- Rank badge -->
+        <div class="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+             style="background:rgba(255,83,90,0.85);color:white;">#${r.rank}</div>
+      </div>
+
+      <!-- Info -->
+      <div class="flex flex-col flex-1 py-1 justify-between">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <h3 class="font-headline-sm text-headline-sm text-on-surface">${r.name}</h3>
+            <button class="text-on-surface-variant hover:text-primary transition-colors ml-2" title="Save">
+              <span class="material-symbols-outlined">bookmark_border</span>
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 font-body-sm text-body-sm text-on-surface-variant mb-4">
+            ${cuisineTags}
+            <span>•</span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined" style="font-size:14px;">location_on</span>${r.location}
+            </span>
+            <span>•</span>
+            <span>₹${r.cost} for two</span>
+            <span>•</span>
+            <span>${r.votes.toLocaleString()} votes</span>
+          </div>
+        </div>
+        <!-- AI quote -->
+        <div class="rounded-lg p-3 border-l-2" style="background:#131316;border-color:rgba(255,83,90,0.4);">
+          <p class="font-body-sm text-body-sm text-on-surface-variant italic">
+            "${r.ai_summary}"
+          </p>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Main fetch ────────────────────────────────────────
+  async function getRecommendations() {
+    hideError();
+
+    const location = document.getElementById("locationInput").value.trim();
+    if (!location) { showError("Please enter a location (e.g. Banashankari)."); return; }
+
+    const payload = {
+      location,
+      cuisine:     selectedCuisine,
+      budget:      selectedBudget,
+      min_rating:  parseFloat(document.getElementById("ratingSlider").value),
+      extra_prefs: document.getElementById("extraInput").value.trim()
+    };
+
+    const apiBase = document.getElementById("apiUrlInput").value.trim().replace(/\/$/, "");
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${apiBase}/api/recommend`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Summary banner
+      const banner  = document.getElementById("summaryBanner");
+      const sumText = document.getElementById("summaryText");
+      const conText = document.getElementById("consideredText");
+      sumText.innerHTML = data.query_summary;
+      conText.textContent = `Considered ${data.considered} restaurant${data.considered !== 1 ? "s" : ""}`;
+      banner.classList.remove("hidden");
+
+      // Cards
+      const list = document.getElementById("resultsList");
+      list.innerHTML = data.restaurants.map((r, i) => buildCard(r, i * 80)).join("");
+
+      document.getElementById("emptyState").classList.add("hidden");
+
+    } catch (err) {
+      showError("Error: " + err.message + (err.message.includes("fetch") ? " — Is the API server running? (uvicorn api.main:app --port 8000)" : ""));
+      document.getElementById("emptyState").classList.remove("hidden");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Allow Enter key on location input ─────────────────
+  document.getElementById("locationInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") getRecommendations();
+  });
+
+  // ── Init: mark "Any" cuisine as active ─────────────────
+  document.querySelector('.cuisine-chip[data-value="any"]').classList.add("active");
+</script>
+</body>
+</html>

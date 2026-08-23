@@ -1,0 +1,13 @@
+# Backend dependencies
+datasets
+pandas
+groq
+python-dotenv
+fuzzywuzzy
+python-Levenshtein
+rich
+
+# API layer (Phase 7)
+fastapi
+uvicorn[standard]
+pydantic

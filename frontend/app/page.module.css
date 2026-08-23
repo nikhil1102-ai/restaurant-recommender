@@ -1,0 +1,20 @@
+/* app/page.module.css */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.appShell {
+  display: flex;
+  flex: 1;
+  padding-top: 68px; /* topbar height */
+  overflow: hidden;
+}
+
+.mainArea {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
